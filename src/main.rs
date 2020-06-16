@@ -2,6 +2,7 @@
 #[allow(unused_imports)]
 #[allow(unused_variables)]
 use tokio::prelude::*;
+use tokio::sync::oneshot;
 
 use tokio::sync::mpsc::{channel};
 
@@ -22,6 +23,13 @@ async fn main() -> Fallible<()>{
     let (mut ctx, crx) = channel::<message_generator::Ctrl>(10);
     tokio::spawn(message_generator(crx, tx));
     tokio::spawn(file_sink(rx));
+    sleep(2000).await;
+
+    println!("health message sent....");
+    let (rtx, rrx) = oneshot::channel();
+    ctx.send(message_generator::Ctrl::Health(rtx)).await?;
+    println!("Received response healthy");
+
     sleep(2000).await;
 
     println!("Quit msg sent.....");

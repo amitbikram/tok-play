@@ -1,5 +1,6 @@
 use tokio::sync::mpsc::{Sender, Receiver};
 use tokio::select;
+use tokio::sync::oneshot;
 
 use crate::time::{sleep};
 
@@ -9,7 +10,13 @@ pub use message::{Message};
 #[derive(Debug)]
 pub enum Ctrl {
     Quit,
-    Health,
+    Health(oneshot::Sender<HealthResponse>),
+}
+
+#[derive(Debug)]
+pub enum HealthResponse {
+    Healthy,
+    UnHealthy,
 }
 
 pub async fn message_generator(mut ctrl_channel: Receiver<Ctrl>, mut channel: Sender<Message>) {
@@ -26,6 +33,9 @@ pub async fn message_generator(mut ctrl_channel: Receiver<Ctrl>, mut channel: Se
             ctl = ctrl_channel.recv() =>
                 match ctl {
                     Some(Ctrl::Quit) => break,
+                    Some(Ctrl::Health(rtx)) => {
+                        rtx.send(HealthResponse::Healthy).unwrap();
+                    }
                     None => break
                 }
         }
